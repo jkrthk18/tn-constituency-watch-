@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TN Constituency Watch · 2026</title>
+<style>
+  :root {
+    --tvk: #7c3aed; --dmk: #dc2626; --admk: #16a34a;
+    --inc: #2563eb; --pmk: #d97706; --iuml: #059669;
+    --vck: #7c3aed; --cpi: #dc2626; --cpim: #b91c1c;
+    --bjp: #ea580c; --dmdk: #0891b2; --ammk: #0d9488;
+    --pending: #9ca3af;
+    --bg: #f8f7f4; --surface: #ffffff; --border: #e5e3dc;
+    --text: #1a1a1a; --muted: #6b7280;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+
+  /* TOP BAR */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 20px; height: 52px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header span { font-size: 12px; color: var(--muted); }
+  .header-badges { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .hbadge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+
+  /* SEARCH */
+  .search-bar { padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .search-bar input { flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; background: var(--bg); outline: none; }
+  .search-bar input:focus { border-color: #7c3aed; }
+  .filter-btn { font-size: 12px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; color: var(--text); }
+  .filter-btn.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+
+  /* MAIN LAYOUT */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR - constituency list */
+  .sidebar { width: 260px; flex-shrink: 0; border-right: 1px solid var(--border); overflow-y: auto; background: var(--surface); }
+  .sidebar-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 10px; }
+  .sidebar-item:hover { background: var(--bg); }
+  .sidebar-item.active { background: #f3f0ff; border-left: 3px solid #7c3aed; }
+  .party-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .const-name { font-size: 13px; font-weight: 500; }
+  .const-sub { font-size: 11px; color: var(--muted); }
+  .const-no { font-size: 10px; color: var(--muted); margin-left: auto; }
+
+  /* MAP AREA */
+  .map-container { flex: 1; position: relative; overflow: hidden; background: #f0ede8; display: flex; align-items: center; justify-content: center; }
+  .map-container svg { width: 100%; height: 100%; }
+  .map-hint { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--muted); background: white; border: 1px solid var(--border); padding: 4px 12px; border-radius: 20px; white-space: nowrap; pointer-events: none; }
+  .map-tooltip { position: absolute; background: white; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+  /* DETAIL PANEL */
+  .detail { width: 320px; flex-shrink: 0; border-left: 1px solid var(--border); overflow-y: auto; background: var(--surface); }
+  .detail-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: 13px; gap: 8px; }
+  .detail-empty svg { opacity: 0.3; }
+
+  .detail-header { padding: 16px; border-bottom: 1px solid var(--border); }
+  .detail-header h2 { font-size: 17px; font-weight: 600; }
+  .detail-header .district { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .mla-card { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .mla-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .mla-name { font-size: 15px; font-weight: 600; }
+  .mla-party-tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 3px; font-weight: 500; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-box { background: var(--bg); border-radius: 6px; padding: 8px 10px; }
+  .stat-val { font-size: 15px; font-weight: 600; }
+  .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .tab { flex: 1; font-size: 11px; padding: 9px 4px; text-align: center; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; font-weight: 500; }
+  .tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+  .tab-pane { padding: 14px 16px; display: none; }
+  .tab-pane.active { display: block; }
+
+  .info-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; gap: 8px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--muted); flex-shrink: 0; }
+  .info-val { text-align: right; font-weight: 500; }
+  .pill { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+  .pill-red { background: #fef2f2; color: #dc2626; }
+  .pill-green { background: #f0fdf4; color: #16a34a; }
+  .pill-amber { background: #fffbeb; color: #d97706; }
+  .pill-gray { background: #f3f4f6; color: #6b7280; }
+
+  .section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 10px 0 6px; }
+  .ext-link { font-size: 11px; color: #7c3aed; text-decoration: none; display: block; margin-top: 10px; }
+  .ext-link:hover { text-decoration: underline; }
+
+  .tracker-item { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .tracker-item:last-child { border-bottom: none; }
+  .tracker-item .t-status { font-size: 10px; padding: 2px 6px; border-radius: 8px; font-weight: 500; }
+  .tracker-note { font-size: 11px; color: var(--muted); margin-top: 10px; font-style: italic; }
+
+  /* PARTY LEGEND */
+  .legend { position: absolute; bottom: 12px; left: 12px; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 11px; display: flex; flex-wrap: wrap; gap: 8px; max-width: 300px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+
+  /* STATS BAR */
+  .stats-bar { position: absolute; top: 12px; right: 12px; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 11px; display: flex; gap: 12px; }
+  .sb-item { text-align: center; }
+  .sb-val { font-size: 16px; font-weight: 700; }
+  .sb-lbl { color: var(--muted); }
+
+  /* No results */
+  .no-results { padding: 20px; font-size: 13px; color: var(--muted); text-align: center; }
+
+  @media (max-width: 900px) {
+    .sidebar { width: 200px; }
+    .detail { width: 280px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+  <h1>TN Constituency Watch</h1>
+  <span>Tamil Nadu · 17th Assembly · 2026</span>
+  <div class="header-badges">
+    <span class="hbadge" style="background:#f3f0ff;color:#7c3aed">TVK Govt</span>
+    <span class="hbadge" style="background:#f0fdf4;color:#16a34a">CM: Vijay</span>
+    <span class="hbadge" style="background:#f3f4f6;color:#374151">Sworn 10 May 2026</span>
+  </div>
+</header>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search constituency or district…" oninput="filterList()">
+  <button class="filter-btn" id="f-all" onclick="setFilter('all')" style="background:#7c3aed;color:white;border-color:#7c3aed">All</button>
+  <button class="filter-btn" id="f-TVK" onclick="setFilter('TVK')">TVK</button>
+  <button class="filter-btn" id="f-DMK" onclick="setFilter('DMK')">DMK</button>
+  <button class="filter-btn" id="f-ADMK" onclick="setFilter('ADMK')">ADMK</button>
+  <button class="filter-btn" id="f-Others" onclick="setFilter('Others')">Others</button>
+</div>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar"></div>
+
+  <!-- MAP -->
+  <div class="map-container" id="mapContainer">
+    <div class="map-hint">Click any constituency to load MLA profile</div>
+    <div class="map-tooltip" id="tooltip"></div>
+    <div class="stats-bar">
+      <div class="sb-item"><div class="sb-val" style="color:#7c3aed">108</div><div class="sb-lbl">TVK</div></div>
+      <div class="sb-item"><div class="sb-val" style="color:#dc2626">59</div><div class="sb-lbl">DMK</div></div>
+      <div class="sb-item"><div class="sb-val" style="color:#16a34a">47</div><div class="sb-lbl">ADMK</div></div>
+      <div class="sb-item"><div class="sb-val" style="color:#6b7280">20</div><div class="sb-lbl">Others</div></div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <!-- GeoJSON map rendered by JS -->
+    <svg id="mapSvg" viewBox="0 0 800 900" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail" id="detail">
+    <div class="detail-empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      <span>Select a constituency to view details</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const PARTY_COLORS = {
+  TVK:'#7c3aed',DMK:'#dc2626',ADMK:'#16a34a',INC:'#2563eb',
+  PMK:'#d97706',IUML:'#059669',VCK:'#4f46e5',CPI:'#b91c1c',
+  CPIM:'#991b1b',BJP:'#ea580c',DMDK:'#0891b2',AMMK:'#0d9488',Pending:'#d1d5db'
+};
+const PARTY_BG = {
+  TVK:'#f3f0ff',DMK:'#fef2f2',ADMK:'#f0fdf4',INC:'#eff6ff',
+  PMK:'#fffbeb',IUML:'#ecfdf5',VCK:'#eef2ff',CPI:'#fef2f2',
+  CPIM:'#fef2f2',BJP:'#fff7ed',DMDK:'#f0f9ff',AMMK:'#f0fdfa',Pending:'#f9fafb'
+};
+
+let allData = [];
+let activeFilter = 'all';
+let selectedNo = null;
+let geoData = null;
+
+async function init() {
+  const [constRes, geoRes] = await Promise.all([
+    fetch('data/constituencies.json'),
+    fetch('https://cdn.jsdelivr.net/gh/datameet/maps@master/assembly-constituencies/tamil-nadu.json')
+      .catch(() => null)
+  ]);
+  allData = await constRes.json();
+  if (geoRes && geoRes.ok) {
+    geoData = await geoRes.json();
+    renderGeoMap();
+  } else {
+    renderSchematicMap();
+  }
+  renderSidebar(allData);
+  renderLegend();
+}
+
+function partyColor(p) { return PARTY_COLORS[p] || '#9ca3af'; }
+function partyBg(p) { return PARTY_BG[p] || '#f3f4f6'; }
+
+function renderLegend() {
+  const parties = ['TVK','DMK','ADMK','INC','PMK','IUML','VCK','CPI','CPIM','BJP','DMDK'];
+  const counts = {};
+  allData.forEach(c => { counts[c.party] = (counts[c.party]||0)+1; });
+  document.getElementById('legend').innerHTML = parties.map(p =>
+    `<div class="legend-item"><div style="width:10px;height:10px;border-radius:50%;background:${partyColor(p)}"></div><span>${p} (${counts[p]||0})</span></div>`
+  ).join('') + `<div class="legend-item"><div style="width:10px;height:10px;border-radius:50%;background:#d1d5db"></div><span>Pending</span></div>`;
+}
+
+// GeoJSON map using D3-like projection
+function renderGeoMap() {
+  const svg = document.getElementById('mapSvg');
+  const features = geoData.features || [];
+
+  // Build lookup by constituency number
+  const lookup = {};
+  allData.forEach(c => { lookup[c.no] = c; });
+
+  // Simple mercator-like bounds fit
+  let minLng=Infinity,maxLng=-Infinity,minLat=Infinity,maxLat=-Infinity;
+  features.forEach(f => {
+    const coords = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    coords.forEach(poly => poly.forEach(ring => ring.forEach(([lng,lat]) => {
+      if(lng<minLng)minLng=lng; if(lng>maxLng)maxLng=lng;
+      if(lat<minLat)minLat=lat; if(lat>maxLat)maxLat=lat;
+    })));
+  });
+
+  const W=800,H=900,PAD=20;
+  const scaleX = (W-2*PAD)/(maxLng-minLng);
+  const scaleY = (H-2*PAD)/(maxLat-minLat);
+  const scale = Math.min(scaleX,scaleY);
+
+  function project([lng,lat]) {
+    return [PAD+(lng-minLng)*scale, H-PAD-(lat-minLat)*scale];
+  }
+
+  function coordsToPath(coords) {
+    return coords.map(ring =>
+      ring.map((pt,i) => { const [x,y]=project(pt); return (i===0?'M':'L')+x.toFixed(1)+' '+y.toFixed(1); }).join(' ')+'Z'
+    ).join(' ');
+  }
+
+  const tooltip = document.getElementById('tooltip');
+  const container = document.getElementById('mapContainer');
+
+  features.forEach(f => {
+    const props = f.properties;
+    // Try matching by AC_NO or similar field
+    const acNo = props.AC_NO || props.ac_no || props.CONST_NO || props.const_no;
+    const acName = (props.AC_NAME || props.ac_name || props.NAME || '').toUpperCase().trim();
+    
+    let constData = null;
+    if (acNo) constData = lookup[parseInt(acNo)];
+    if (!constData && acName) {
+      constData = allData.find(c => c.name.replace(/[^A-Z]/g,'') === acName.replace(/[^A-Z]/g,''));
+    }
+
+    const party = constData ? constData.party : 'Pending';
+    const color = partyColor(party);
+
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    const pathStr = polys.map(poly => coordsToPath(poly)).join(' ');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', pathStr);
+    path.setAttribute('fill', color);
+    path.setAttribute('fill-opacity', '0.75');
+    path.setAttribute('stroke', '#fff');
+    path.setAttribute('stroke-width', '0.5');
+    path.style.cursor = 'pointer';
+    path.style.transition = 'fill-opacity 0.15s';
+
+    path.addEventListener('mouseenter', e => {
+      path.setAttribute('fill-opacity','1');
+      const name = constData ? constData.name : (props.AC_NAME || props.NAME || 'Unknown');
+      const winner = constData ? constData.winner : '—';
+      tooltip.innerHTML = `<strong>${name}</strong><br>${party} · ${winner}`;
+      tooltip.style.display = 'block';
+    });
+    path.addEventListener('mousemove', e => {
+      const rect = container.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 12)+'px';
+      tooltip.style.top = (e.clientY - rect.top - 10)+'px';
+    });
+    path.addEventListener('mouseleave', () => {
+      path.setAttribute('fill-opacity','0.75');
+      tooltip.style.display='none';
+    });
+    path.addEventListener('click', () => {
+      if (constData) {
+        selectConstituency(constData.no);
+        // Highlight
+        document.querySelectorAll('#mapSvg path').forEach(p => p.setAttribute('stroke-width','0.5'));
+        path.setAttribute('stroke-width','2');
+        path.setAttribute('stroke','#1a1a1a');
+      }
+    });
+    svg.appendChild(path);
+  });
+}
+
+// Fallback schematic map if GeoJSON fails
+function renderSchematicMap() {
+  const svg = document.getElementById('mapSvg');
+  svg.innerHTML = `<text x="400" y="430" text-anchor="middle" font-size="14" fill="#6b7280">Geographic map loading failed.</text>
+  <text x="400" y="455" text-anchor="middle" font-size="12" fill="#9ca3af">Use the constituency list on the left to navigate.</text>`;
+}
+
+// SIDEBAR
+function renderSidebar(data) {
+  const sb = document.getElementById('sidebar');
+  if (!data.length) { sb.innerHTML = '<div class="no-results">No constituencies found</div>'; return; }
+  sb.innerHTML = data.map(c => `
+    <div class="sidebar-item ${c.no===selectedNo?'active':''}" onclick="selectConstituency(${c.no})" id="si-${c.no}">
+      <div class="party-dot" style="background:${partyColor(c.party)}"></div>
+      <div>
+        <div class="const-name">${c.name}</div>
+        <div class="const-sub">${c.district} · ${c.party}</div>
+      </div>
+      <div class="const-no">#${c.no}</div>
+    </div>`).join('');
+}
+
+function filterList() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = allData;
+  if (activeFilter !== 'all') {
+    if (activeFilter === 'Others') filtered = filtered.filter(c => !['TVK','DMK','ADMK'].includes(c.party));
+    else filtered = filtered.filter(c => c.party === activeFilter);
+  }
+  if (q) filtered = filtered.filter(c => c.name.toLowerCase().includes(q) || c.district.toLowerCase().includes(q));
+  renderSidebar(filtered);
+}
+
+function setFilter(f) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('f-'+f);
+  if (btn) { btn.style.background='#7c3aed'; btn.style.color='white'; btn.style.borderColor='#7c3aed'; }
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    if (!b.classList.contains('active') && b.id !== 'f-'+f) { b.style.background=''; b.style.color=''; b.style.borderColor=''; }
+  });
+  filterList();
+}
+
+// DETAIL PANEL
+function selectConstituency(no) {
+  selectedNo = no;
+  const c = allData.find(x => x.no === no);
+  if (!c) return;
+
+  // Sidebar highlight
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  const si = document.getElementById('si-'+no);
+  if (si) { si.classList.add('active'); si.scrollIntoView({block:'nearest'}); }
+
+  const pc = partyColor(c.party);
+  const pb = partyBg(c.party);
+  const initials = c.winner && c.winner !== 'Data pending — see MyNeta'
+    ? c.winner.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()
+    : '?';
+
+  const marginFmt = c.margin ? c.margin.toLocaleString('en-IN') : '—';
+  const winnerDisplay = c.winner_pending ? 'Data pending' : c.winner;
+
+  document.getElementById('detail').innerHTML = `
+    <div class="detail-header">
+      <h2>${c.name}</h2>
+      <div class="district">Constituency #${c.no} · ${c.district} District</div>
+    </div>
+
+    <div class="mla-card">
+      <div class="mla-row">
+        <div class="avatar" style="background:${pb};color:${pc}">${initials}</div>
+        <div>
+          <div class="mla-name">${winnerDisplay}</div>
+          <div class="mla-party-tag" style="background:${pb};color:${pc}">${c.party}</div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val">${c.margin ? c.margin.toLocaleString('en-IN') : '—'}</div>
+          <div class="stat-lbl">Winning margin</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${c.runner_party || '—'}</div>
+          <div class="stat-lbl">Runner-up party</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'t-affidavit')">Affidavit</div>
+      <div class="tab" onclick="switchTab(this,'t-cases')">Cases</div>
+      <div class="tab" onclick="switchTab(this,'t-funds')">Funds</div>
+      <div class="tab" onclick="switchTab(this,'t-track')">Track</div>
+    </div>
+
+    <div class="tab-pane active" id="t-affidavit">
+      <div class="section-label">2026 declared assets</div>
+      <div class="info-row"><span class="info-label">Movable assets</span><span class="info-val pill pill-gray">See MyNeta</span></div>
+      <div class="info-row"><span class="info-label">Immovable assets</span><span class="info-val pill pill-gray">See MyNeta</span></div>
+      <div class="info-row"><span class="info-label">Liabilities</span><span class="info-val">—</span></div>
+      <div class="info-row"><span class="info-label">Education</span><span class="info-val">—</span></div>
+      ${c.winner_pending ? `<p style="font-size:11px;color:#d97706;margin-top:10px">⚠ Winner data being verified. Check ECI / MyNeta for latest.</p>` : ''}
+      <a class="ext-link" href="${c.myneta_url}" target="_blank">↗ View affidavit on MyNeta</a>
+      <a class="ext-link" href="https://affidavit.eci.gov.in/" target="_blank">↗ ECI affidavit repository</a>
+    </div>
+
+    <div class="tab-pane" id="t-cases">
+      <div class="section-label">Criminal cases (2026 affidavit)</div>
+      <div class="info-row"><span class="info-label">Declared cases</span><span class="info-val"><span class="pill pill-gray">Pending data</span></span></div>
+      <div class="info-row"><span class="info-label">Serious IPC cases</span><span class="info-val">—</span></div>
+      <a class="ext-link" href="https://myneta.info/TamilNadu2026/" target="_blank">↗ ADR / MyNeta criminal record data</a>
+    </div>
+
+    <div class="tab-pane" id="t-funds">
+      <div class="section-label">MLALAD – Local development fund</div>
+      <div class="info-row"><span class="info-label">Annual allocation</span><span class="info-val">₹ 2.25 Cr (standard)</span></div>
+      <div class="info-row"><span class="info-label">FY27 utilised</span><span class="info-val"><span class="pill pill-gray">Tracking starts</span></span></div>
+      <div class="section-label" style="margin-top:12px">Scheme announcements</div>
+      <p style="font-size:12px;color:var(--muted)">No entries yet. Add to <code>data/track/${c.name.replace(/[^A-Z0-9]/gi,'_').toUpperCase()}.md</code></p>
+    </div>
+
+    <div class="tab-pane" id="t-track">
+      <div class="section-label">Government progress tracker</div>
+      <p class="tracker-note">This tab is populated from <code>data/track/${c.name.replace(/[^A-Z0-9]/gi,'_').toUpperCase()}.md</code> in the repo. Drop a markdown file there to add entries — they appear here automatically.</p>
+      <div style="margin-top:12px;padding:10px;background:#f3f0ff;border-radius:6px;font-size:11px;color:#6d28d9">
+        <strong>How to add entries:</strong><br>
+        Create a file <code>data/track/CONSTITUENCY_NAME.md</code> with date, source, summary and link. The site reads it via GitHub raw API.
+      </div>
+    </div>
+  `;
+}
+
+function switchTab(el, paneId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(paneId).classList.add('active');
+}
+
+init();
+</script>
+</body>
+</html>
